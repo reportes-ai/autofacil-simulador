@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, DollarSign, Calendar, Shield } from 'lucide-react';
+import { DollarSign, Calendar, Shield, TrendingUp } from 'lucide-react';
 
 export default function CalculadoraCuotas() {
   const [saldoPrecio, setSaldoPrecio] = useState('');
   const [cuotas, setCuotas] = useState({ mes12: 0, mes24: 0, mes36: 0, mes48: 0 });
 
-  // Valores fijos del simulador
   const UF = 39762.52;
   const PRENDA = 103610;
   const LIMITACION_DOMINIO = 5630;
   const INSCRIPCION = 36030;
-  const LIMITE_200_UF = UF * 200; // $7,952,504
-  const TASA_MENOR_200UF = 0.0258; // 2.58% mensual para montos ≤ 200 UF
-  const TASA_MAYOR_200UF = 0.0213; // 2.13% mensual para montos > 200 UF
+  const LIMITE_200_UF = UF * 200;
+  const TASA_MENOR_200UF = 0.0258;
+  const TASA_MAYOR_200UF = 0.0213;
 
-  // Tabla de seguros (desde la hoja SEGUROS del Excel)
   const seguros = {
     12: { desg: 0.0183, rdh: 0.0115 },
     24: { desg: 0.0268, rdh: 0.0121 },
@@ -24,53 +22,23 @@ export default function CalculadoraCuotas() {
 
   const calcularCuota = (plazoMeses) => {
     if (!saldoPrecio || parseFloat(saldoPrecio) <= 0) return 0;
-
     const monto = parseFloat(saldoPrecio);
-    
-    // 1. Cálculo de Reparaciones Menores (0.24 UF por mes)
     const reparacionesMenores = plazoMeses * 0.24 * UF;
-    
-    // 2. Subtotal sin seguros
-    const subTotalSinSeguros = 
-      monto + 
-      PRENDA + 
-      LIMITACION_DOMINIO + 
-      INSCRIPCION + 
-      reparacionesMenores;
-    
-    // 3. Factor de seguros (necesita el monto total financiado)
-    // Para calcular seguros necesitamos el factor de valor presente
-    const factorVP = calcularFactorVP(plazoMeses);
+    const subTotalSinSeguros = monto + PRENDA + LIMITACION_DOMINIO + INSCRIPCION + reparacionesMenores;
+    const factorVP = 1.04;
     const montoParaSeguros = subTotalSinSeguros * factorVP;
-    
-    // 4. Seguros
     const seguroDesg = seguros[plazoMeses].desg * montoParaSeguros;
     const seguroRDH = seguros[plazoMeses].rdh * montoParaSeguros;
-    
-    // 5. Total a financiar
     const totalFinanciar = subTotalSinSeguros + seguroDesg + seguroRDH;
-    
-    // 6. Determinar tasa según monto total (D4: =IF(D21>P3,Q5,P5))
     const tasaMensual = totalFinanciar > LIMITE_200_UF ? TASA_MAYOR_200UF : TASA_MENOR_200UF;
-    
-    // 7. Cálculo de cuota usando PMT
     const cuota = calcularPMT(tasaMensual, plazoMeses, totalFinanciar);
-    
     return Math.round(cuota);
   };
 
-  // Función PMT (Payment) - equivalente a -PMT en Excel
   const calcularPMT = (tasa, nper, pv) => {
     if (tasa === 0) return pv / nper;
     const pvif = Math.pow(1 + tasa, nper);
     return (tasa * pv * pvif) / (pvif - 1);
-  };
-
-  // Factor de valor presente para cálculo de seguros
-  const calcularFactorVP = (nper) => {
-    // Este factor simula la relación entre el monto inicial y el financiado
-    // Basado en el patrón del Excel: D32 = VLOOKUP que da aprox 1.04
-    return 1.04;
   };
 
   useEffect(() => {
@@ -92,172 +60,302 @@ export default function CalculadoraCuotas() {
     }).format(monto);
   };
 
-  // Función para obtener la tasa aplicable
   const obtenerTasaAplicable = () => {
     if (!saldoPrecio || parseFloat(saldoPrecio) <= 0) return null;
-    
     const monto = parseFloat(saldoPrecio);
-    const reparacionesMenores = 12 * 0.24 * UF; // Usar 12 meses como referencia
+    const reparacionesMenores = 12 * 0.24 * UF;
     const subTotal = monto + PRENDA + LIMITACION_DOMINIO + INSCRIPCION + reparacionesMenores;
-    
-    // Estimación del total con seguros (aproximado)
     const totalEstimado = subTotal * 1.04;
-    
     return totalEstimado > LIMITE_200_UF ? TASA_MAYOR_200UF : TASA_MENOR_200UF;
   };
 
+  const styles = {
+    container: {
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      padding: '0',
+      margin: '0'
+    },
+    wrapper: {
+      maxWidth: '480px',
+      margin: '0 auto',
+      padding: '16px',
+      paddingBottom: '32px'
+    },
+    header: {
+      textAlign: 'center',
+      paddingTop: '40px',
+      paddingBottom: '24px',
+      color: 'white'
+    },
+    title: {
+      fontSize: '32px',
+      fontWeight: '800',
+      marginBottom: '8px',
+      textShadow: '0 2px 10px rgba(0,0,0,0.1)'
+    },
+    subtitle: {
+      fontSize: '16px',
+      opacity: '0.95',
+      fontWeight: '500'
+    },
+    inputCard: {
+      background: 'white',
+      borderRadius: '24px',
+      boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      padding: '28px',
+      marginBottom: '20px'
+    },
+    label: {
+      display: 'block',
+      fontSize: '14px',
+      fontWeight: '600',
+      color: '#374151',
+      marginBottom: '12px'
+    },
+    inputWrapper: {
+      position: 'relative'
+    },
+    dollarIcon: {
+      position: 'absolute',
+      left: '16px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      color: '#9CA3AF',
+      width: '24px',
+      height: '24px'
+    },
+    input: {
+      width: '100%',
+      padding: '18px 16px 18px 52px',
+      fontSize: '28px',
+      fontWeight: '700',
+      border: '2px solid #E5E7EB',
+      borderRadius: '16px',
+      outline: 'none',
+      transition: 'all 0.3s',
+      boxSizing: 'border-box'
+    },
+    includeSection: {
+      marginTop: '20px',
+      paddingTop: '20px',
+      borderTop: '1px solid #F3F4F6'
+    },
+    includeHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      fontSize: '13px',
+      color: '#6B7280',
+      marginBottom: '12px',
+      fontWeight: '600'
+    },
+    includeList: {
+      marginLeft: '24px',
+      fontSize: '12px',
+      color: '#9CA3AF'
+    },
+    includeItem: {
+      marginBottom: '6px'
+    },
+    sectionTitle: {
+      fontSize: '18px',
+      fontWeight: '700',
+      color: 'white',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      marginBottom: '16px',
+      paddingLeft: '8px'
+    },
+    optionsContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px'
+    },
+    optionCard: {
+      borderRadius: '20px',
+      boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+      padding: '24px',
+      color: 'white',
+      transition: 'transform 0.2s',
+      cursor: 'pointer'
+    },
+    optionHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: '8px'
+    },
+    optionLabel: {
+      fontSize: '13px',
+      fontWeight: '600',
+      opacity: '0.9',
+      marginBottom: '6px'
+    },
+    optionAmount: {
+      fontSize: '36px',
+      fontWeight: '800',
+      lineHeight: '1.1'
+    },
+    optionBadge: {
+      background: 'rgba(255,255,255,0.25)',
+      borderRadius: '20px',
+      padding: '6px 14px',
+      fontSize: '11px',
+      fontWeight: '700',
+      whiteSpace: 'nowrap'
+    },
+    optionSubtext: {
+      fontSize: '14px',
+      opacity: '0.9',
+      marginBottom: '12px'
+    },
+    optionTotal: {
+      fontSize: '12px',
+      opacity: '0.8'
+    },
+    infoCard: {
+      background: 'rgba(255,255,255,0.95)',
+      borderRadius: '16px',
+      padding: '20px',
+      fontSize: '12px',
+      color: '#6B7280',
+      marginTop: '16px'
+    },
+    infoTitle: {
+      fontWeight: '700',
+      color: '#374151',
+      marginBottom: '12px',
+      fontSize: '13px'
+    },
+    infoItem: {
+      marginBottom: '6px',
+      lineHeight: '1.5'
+    },
+    infoSubitem: {
+      marginLeft: '16px',
+      color: '#9CA3AF',
+      fontSize: '11px'
+    },
+    emptyState: {
+      textAlign: 'center',
+      padding: '60px 20px',
+      color: 'white'
+    },
+    emptyIcon: {
+      opacity: '0.6',
+      marginBottom: '16px'
+    },
+    emptyText: {
+      fontSize: '15px',
+      opacity: '0.9'
+    }
+  };
+
+  const colorSchemes = {
+    12: { from: '#10b981', to: '#059669' },
+    24: { from: '#3b82f6', to: '#2563eb' },
+    36: { from: '#8b5cf6', to: '#7c3aed' },
+    48: { from: '#f59e0b', to: '#d97706' }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
-      <div className="max-w-md mx-auto p-4 space-y-6">
-        {/* Header */}
-        <div className="text-center pt-8 pb-4">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Simulador de Cuotas
-          </h1>
-          <p className="text-gray-600">Financiamiento Automotriz</p>
+    <div style={styles.container}>
+      <div style={styles.wrapper}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Simulador de Cuotas</h1>
+          <p style={styles.subtitle}>Financiamiento Automotriz</p>
         </div>
 
-        {/* Input Card */}
-        <div className="bg-white rounded-3xl shadow-xl p-6 border border-gray-100">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Saldo Precio a Financiar
-          </label>
-          <div className="relative">
-            <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <div style={styles.inputCard}>
+          <label style={styles.label}>Saldo Precio a Financiar</label>
+          <div style={styles.inputWrapper}>
+            <DollarSign style={styles.dollarIcon} />
             <input
               type="number"
               value={saldoPrecio}
               onChange={(e) => setSaldoPrecio(e.target.value)}
               placeholder="Ingrese el monto"
-              className="w-full pl-12 pr-4 py-4 text-2xl font-bold border-2 border-gray-200 rounded-2xl focus:border-blue-500 focus:outline-none transition-colors"
+              style={styles.input}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
             />
           </div>
-          
-          {/* Incluye */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-              <Shield className="w-4 h-4 text-blue-600" />
-              <span className="font-medium">Incluye:</span>
+
+          <div style={styles.includeSection}>
+            <div style={styles.includeHeader}>
+              <Shield style={{ width: '16px', height: '16px', color: '#667eea' }} />
+              <span>Incluye:</span>
             </div>
-            <div className="space-y-1 text-xs text-gray-500 ml-6">
-              <div>✓ Seguro de Desgravamen</div>
-              <div>✓ Seguro RDH</div>
-              <div>✓ Reparaciones Menores</div>
-              <div>✓ Gastos de Prenda e Inscripción</div>
+            <div style={styles.includeList}>
+              <div style={styles.includeItem}>✓ Seguro de Desgravamen</div>
+              <div style={styles.includeItem}>✓ Seguro RDH</div>
+              <div style={styles.includeItem}>✓ Reparaciones Menores</div>
+              <div style={styles.includeItem}>✓ Gastos de Prenda e Inscripción</div>
             </div>
           </div>
         </div>
 
-        {/* Results */}
-        {saldoPrecio && parseFloat(saldoPrecio) > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-gray-700 px-2 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
+        {saldoPrecio && parseFloat(saldoPrecio) > 0 ? (
+          <>
+            <div style={styles.sectionTitle}>
+              <Calendar style={{ width: '20px', height: '20px' }} />
               Opciones de Pago
-            </h2>
+            </div>
 
-            {/* 12 meses */}
-            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-3xl shadow-lg p-6 text-white transform transition-transform hover:scale-105">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <div className="text-sm font-medium opacity-90">12 Meses</div>
-                  <div className="text-4xl font-bold mt-1">
-                    {formatearMonto(cuotas.mes12)}
+            <div style={styles.optionsContainer}>
+              {[
+                { months: 12, label: 'Corto Plazo', color: colorSchemes[12] },
+                { months: 24, label: 'Recomendado', color: colorSchemes[24] },
+                { months: 36, label: 'Cuota Baja', color: colorSchemes[36] },
+                { months: 48, label: 'Más Plazo', color: colorSchemes[48] }
+              ].map(({ months, label, color }) => (
+                <div
+                  key={months}
+                  style={{
+                    ...styles.optionCard,
+                    background: `linear-gradient(135deg, ${color.from} 0%, ${color.to} 100%)`
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <div style={styles.optionHeader}>
+                    <div>
+                      <div style={styles.optionLabel}>{months} Meses</div>
+                      <div style={styles.optionAmount}>
+                        {formatearMonto(cuotas[`mes${months}`])}
+                      </div>
+                    </div>
+                    <div style={styles.optionBadge}>{label}</div>
+                  </div>
+                  <div style={styles.optionSubtext}>por mes</div>
+                  <div style={styles.optionTotal}>
+                    Total: {formatearMonto(cuotas[`mes${months}`] * months)}
                   </div>
                 </div>
-                <div className="bg-white bg-opacity-20 rounded-full px-3 py-1 text-xs font-semibold">
-                  Corto Plazo
-                </div>
-              </div>
-              <div className="text-sm opacity-90">por mes</div>
-              <div className="text-xs opacity-75 mt-3">
-                Total: {formatearMonto(cuotas.mes12 * 12)}
-              </div>
+              ))}
             </div>
 
-            {/* 24 meses */}
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl shadow-lg p-6 text-white transform transition-transform hover:scale-105">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <div className="text-sm font-medium opacity-90">24 Meses</div>
-                  <div className="text-4xl font-bold mt-1">
-                    {formatearMonto(cuotas.mes24)}
-                  </div>
-                </div>
-                <div className="bg-white bg-opacity-20 rounded-full px-3 py-1 text-xs font-semibold">
-                  Recomendado
-                </div>
+            <div style={styles.infoCard}>
+              <div style={styles.infoTitle}>Condiciones:</div>
+              <div style={styles.infoItem}>
+                • Tasa: {((obtenerTasaAplicable() || 0) * 100).toFixed(2)}% mensual
               </div>
-              <div className="text-sm opacity-90">por mes</div>
-              <div className="text-xs opacity-75 mt-3">
-                Total: {formatearMonto(cuotas.mes24 * 24)}
+              <div style={styles.infoSubitem}>
+                {obtenerTasaAplicable() === TASA_MAYOR_200UF ? '(Monto > 200 UF)' : '(Monto ≤ 200 UF)'}
               </div>
+              <div style={styles.infoItem}>• Valor UF: ${UF.toLocaleString('es-CL')}</div>
+              <div style={styles.infoItem}>• Incluye todos los seguros y gastos operacionales</div>
             </div>
-
-            {/* 36 meses */}
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-3xl shadow-lg p-6 text-white transform transition-transform hover:scale-105">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <div className="text-sm font-medium opacity-90">36 Meses</div>
-                  <div className="text-4xl font-bold mt-1">
-                    {formatearMonto(cuotas.mes36)}
-                  </div>
-                </div>
-                <div className="bg-white bg-opacity-20 rounded-full px-3 py-1 text-xs font-semibold">
-                  Cuota Baja
-                </div>
-              </div>
-              <div className="text-sm opacity-90">por mes</div>
-              <div className="text-xs opacity-75 mt-3">
-                Total: {formatearMonto(cuotas.mes36 * 36)}
-              </div>
+          </>
+        ) : (
+          <div style={styles.emptyState}>
+            <div style={styles.emptyIcon}>
+              <TrendingUp style={{ width: '64px', height: '64px', margin: '0 auto' }} />
             </div>
-
-            {/* 48 meses */}
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl shadow-lg p-6 text-white transform transition-transform hover:scale-105">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <div className="text-sm font-medium opacity-90">48 Meses</div>
-                  <div className="text-4xl font-bold mt-1">
-                    {formatearMonto(cuotas.mes48)}
-                  </div>
-                </div>
-                <div className="bg-white bg-opacity-20 rounded-full px-3 py-1 text-xs font-semibold">
-                  Más Plazo
-                </div>
-              </div>
-              <div className="text-sm opacity-90">por mes</div>
-              <div className="text-xs opacity-75 mt-3">
-                Total: {formatearMonto(cuotas.mes48 * 48)}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Info Footer */}
-        {saldoPrecio && parseFloat(saldoPrecio) > 0 && (
-          <div className="bg-gray-50 rounded-2xl p-4 text-xs text-gray-600 border border-gray-200">
-            <div className="font-semibold mb-2 text-gray-700">Condiciones:</div>
-            <div className="space-y-1">
-              <div>• Tasa: {((obtenerTasaAplicable() || 0) * 100).toFixed(2)}% mensual</div>
-              <div className="text-gray-500 ml-4">
-                {obtenerTasaAplicable() === TASA_MAYOR_200UF 
-                  ? '(Monto > 200 UF)' 
-                  : '(Monto ≤ 200 UF)'}
-              </div>
-              <div>• Valor UF: ${UF.toLocaleString('es-CL')}</div>
-              <div>• Incluye todos los seguros y gastos operacionales</div>
-            </div>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {(!saldoPrecio || parseFloat(saldoPrecio) <= 0) && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-3">
-              <Calculator className="w-16 h-16 mx-auto opacity-50" />
-            </div>
-            <p className="text-gray-500">
+            <p style={styles.emptyText}>
               Ingrese el monto a financiar para ver las opciones de cuotas
             </p>
           </div>
