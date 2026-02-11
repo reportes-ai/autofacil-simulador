@@ -90,6 +90,46 @@ export default function CalculadoraCuotas() {
     }
   };
 
+  // Calcular CAE (Carga Anual Equivalente)
+  // Fórmula: =TASA(nper; -pmt; pv) * 12
+  const calcularCAE = (plazoMeses) => {
+    if (!saldoPrecio || parseFloat(saldoPrecio) <= 0) return 0;
+    
+    const monto = parseFloat(saldoPrecio);
+    const cuotaMensual = cuotas[`mes${plazoMeses}`];
+    
+    if (!cuotaMensual || cuotaMensual === 0) return 0;
+    
+    // Aproximación de la tasa usando el método de Newton-Raphson
+    let tasa = 0.01; // Tasa inicial de 1% mensual
+    const precision = 0.0000001;
+    let iteraciones = 0;
+    const maxIteraciones = 100;
+    
+    while (iteraciones < maxIteraciones) {
+      const factor = Math.pow(1 + tasa, plazoMeses);
+      const pv = cuotaMensual * ((factor - 1) / (tasa * factor));
+      const diferencia = pv - monto;
+      
+      if (Math.abs(diferencia) < precision) break;
+      
+      // Derivada para Newton-Raphson
+      const derivada = cuotaMensual * (
+        (plazoMeses * Math.pow(1 + tasa, plazoMeses - 1) * (tasa * factor) - 
+        (factor - 1) * (factor + tasa * plazoMeses * Math.pow(1 + tasa, plazoMeses - 1))) /
+        Math.pow(tasa * factor, 2)
+      );
+      
+      tasa = tasa - diferencia / derivada;
+      iteraciones++;
+    }
+    
+    // CAE = tasa mensual * 12
+    const cae = tasa * 12 * 100; // Convertir a porcentaje
+    
+    return cae;
+  };
+
   const styles = {
     container: {
       minHeight: '100vh',
@@ -354,7 +394,7 @@ export default function CalculadoraCuotas() {
                   </div>
                   <div style={styles.optionSubtext}>por mes</div>
                   <div style={styles.optionTotal}>
-                    Total: {formatearMonto(cuotas[`mes${months}`] * months)}
+                    CAE: {calcularCAE(months).toFixed(2)}%
                   </div>
                 </div>
               ))}
