@@ -3,6 +3,7 @@ import { DollarSign, Calendar, Shield, TrendingUp } from 'lucide-react';
 
 export default function CalculadoraCuotas() {
   const [saldoPrecio, setSaldoPrecio] = useState('');
+  const [inputValue, setInputValue] = useState(''); // Valor mostrado en el input con formato
   const [cuotas, setCuotas] = useState({ mes12: 0, mes24: 0, mes36: 0, mes48: 0 });
 
   const UF = 39762.52;
@@ -67,6 +68,26 @@ export default function CalculadoraCuotas() {
     const subTotal = monto + PRENDA + LIMITACION_DOMINIO + INSCRIPCION + reparacionesMenores;
     const totalEstimado = subTotal * 1.04;
     return totalEstimado > LIMITE_200_UF ? TASA_MAYOR_200UF : TASA_MENOR_200UF;
+  };
+
+  // Manejar cambio en el input con formato de miles
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    // Remover todos los puntos para obtener el número puro
+    const numeroSinPuntos = value.replace(/\./g, '');
+    
+    // Validar que solo sean números
+    if (numeroSinPuntos === '' || /^\d+$/.test(numeroSinPuntos)) {
+      setSaldoPrecio(numeroSinPuntos);
+      
+      // Formatear con puntos de miles para mostrar
+      if (numeroSinPuntos) {
+        const formatted = parseInt(numeroSinPuntos).toLocaleString('es-CL');
+        setInputValue(formatted);
+      } else {
+        setInputValue('');
+      }
+    }
   };
 
   const styles = {
@@ -274,9 +295,10 @@ export default function CalculadoraCuotas() {
           <div style={styles.inputWrapper}>
             <DollarSign style={styles.dollarIcon} />
             <input
-              type="number"
-              value={saldoPrecio}
-              onChange={(e) => setSaldoPrecio(e.target.value)}
+              type="text"
+              inputMode="numeric"
+              value={inputValue}
+              onChange={handleInputChange}
               placeholder="Ingrese el monto"
               style={styles.input}
               onFocus={(e) => e.target.style.borderColor = '#667eea'}
