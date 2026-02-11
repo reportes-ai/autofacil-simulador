@@ -287,7 +287,7 @@ export default function CalculadoraCuotas() {
       <div style={styles.wrapper}>
         <div style={styles.header}>
           <h1 style={styles.title}>Simulador de Cuotas</h1>
-          <p style={styles.subtitle}>Financiamiento Automotriz</p>
+          <p style={styles.subtitle}>AutoFácil Chile</p>
         </div>
 
         <div style={styles.inputCard}>
