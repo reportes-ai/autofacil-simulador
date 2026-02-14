@@ -11,8 +11,8 @@ export default function CalculadoraCuotas() {
   const LIMITACION_DOMINIO = 5630;
   const INSCRIPCION = 36030;
   const LIMITE_200_UF = UF * 200;
-  const TASA_MENOR_200UF = 0.0258;
-  const TASA_MAYOR_200UF = 0.0213;
+  const TASA_MENOR_200UF = 0.0276;
+  const TASA_MAYOR_200UF = 0.0240;
 
   const seguros = {
     12: { desg: 0.0183, rdh: 0.0115 },
