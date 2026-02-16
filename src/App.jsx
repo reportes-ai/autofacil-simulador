@@ -478,6 +478,9 @@ export default function CalculadoraCuotas() {
               </div>
               <div style={styles.infoItem}>• Valor UF: ${UF.toLocaleString('es-CL')} ({diaActual}/{mesActual + 1}/2026)</div>
               <div style={styles.infoItem}>• Incluye todos los seguros y gastos operacionales</div>
+              <div style={{ ...styles.infoItem, marginTop: '12px', fontStyle: 'italic', color: '#9CA3AF', fontSize: '11px' }}>
+                Valores referenciales, con primera cuota a 30 días.
+              </div>
             </div>
           </>
         ) : (
