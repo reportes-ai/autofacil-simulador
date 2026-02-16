@@ -392,6 +392,17 @@ export default function CalculadoraCuotas() {
     <div style={styles.container}>
       <div style={styles.wrapper}>
         <div style={styles.header}>
+          <div style={{ marginBottom: '20px' }}>
+            <img 
+              src="/logo.png" 
+              alt="AutoFácil" 
+              style={{ 
+                height: '50px', 
+                width: 'auto',
+                filter: 'brightness(0) invert(1)' // Convertir a blanco
+              }} 
+            />
+          </div>
           <h1 style={styles.title}>Simulador de Cuotas</h1>
           <p style={styles.subtitle}>AutoFácil Chile</p>
         </div>
