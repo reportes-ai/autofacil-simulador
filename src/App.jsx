@@ -397,9 +397,10 @@ export default function CalculadoraCuotas() {
               src="/logo.png" 
               alt="AutoFácil" 
               style={{ 
-                height: '50px', 
+                height: '60px', 
                 width: 'auto',
-                filter: 'brightness(0) invert(1)' // Convertir a blanco
+                display: 'block',
+                margin: '0 auto'
               }} 
             />
           </div>
