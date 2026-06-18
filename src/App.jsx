@@ -2,9 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { DollarSign, Calendar, Shield, TrendingUp } from 'lucide-react';
 
 export default function CalculadoraCuotas() {
+  const [tab, setTab] = useState('cuota'); // 'cuota' | 'capacidad'
   const [saldoPrecio, setSaldoPrecio] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [cuotas, setCuotas] = useState({ mes12: 0, mes24: 0, mes36: 0, mes48: 0 });
+
+  // Pestaña 2: capacidad de crédito
+  const [renta, setRenta] = useState('');
+  const [rentaInput, setRentaInput] = useState('');
+  const PCT_RENTA = 0.30; // % renta destinada al pago
+  const PCT_PIE = 0.40;   // pie = 40% del valor del auto
 
   // Obtener fecha actual para buscar UF
   const hoy = new Date();
@@ -73,10 +80,11 @@ export default function CalculadoraCuotas() {
     48: { DESG: 0.0418, RDH: 0.0282, CESA: 0.0502, DESGRDH: 0.07, DESGCESA: 0.092, RDHCESA: 0.0784, DESGRDHCESA: 0.1202 }
   };
 
-  const calcularCuota = (plazoMeses) => {
-    if (!saldoPrecio || parseFloat(saldoPrecio) <= 0) return 0;
+  const calcularCuota = (plazoMeses, montoOverride) => {
+    const montoBase = montoOverride !== undefined ? montoOverride : parseFloat(saldoPrecio);
+    if (!montoBase || montoBase <= 0) return 0;
 
-    const monto = parseFloat(saldoPrecio);
+    const monto = montoBase;
     
     // 1. Reparaciones Menores (siempre incluido)
     const reparacionesMenores = plazoMeses * 0.24 * UF;
@@ -117,6 +125,36 @@ export default function CalculadoraCuotas() {
     if (tasa === 0) return pv / nper;
     const pvif = Math.pow(1 + tasa, nper);
     return (tasa * pv * pvif) / (pvif - 1);
+  };
+
+  // Dado un plazo y una cuota objetivo, encuentra el saldoPrecio (crédito líquido)
+  // que genera esa cuota, usando bisección sobre calcularCuota.
+  const calcularSaldoMaximo = (plazoMeses, cuotaObjetivo) => {
+    if (!cuotaObjetivo || cuotaObjetivo <= 0) return 0;
+    let lo = 0;
+    let hi = 1_000_000_000; // límite superior amplio
+    // Si ni el monto máximo alcanza la cuota objetivo, devolver hi
+    if (calcularCuota(plazoMeses, hi) < cuotaObjetivo) return Math.round(hi);
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      const cuotaMid = calcularCuota(plazoMeses, mid);
+      if (cuotaMid > cuotaObjetivo) {
+        hi = mid;
+      } else {
+        lo = mid;
+      }
+    }
+    return Math.round((lo + hi) / 2);
+  };
+
+  // Resultados de capacidad por plazo
+  const cuotaMaxima = renta && parseFloat(renta) > 0 ? parseFloat(renta) * PCT_RENTA : 0;
+  const calcularCapacidad = (plazoMeses) => {
+    const credito = calcularSaldoMaximo(plazoMeses, cuotaMaxima);
+    // pie = 40% del valor del auto; crédito financia el 60% -> valorAuto = credito / 0.6
+    const valorAuto = credito / (1 - PCT_PIE);
+    const pie = valorAuto * PCT_PIE;
+    return { credito, valorAuto: Math.round(valorAuto), pie: Math.round(pie) };
   };
 
   useEffect(() => {
@@ -162,6 +200,15 @@ export default function CalculadoraCuotas() {
     }
   };
 
+  const handleRentaChange = (e) => {
+    const value = e.target.value;
+    const numeroSinPuntos = value.replace(/\./g, '');
+    if (numeroSinPuntos === '' || /^\d+$/.test(numeroSinPuntos)) {
+      setRenta(numeroSinPuntos);
+      setRentaInput(numeroSinPuntos ? parseInt(numeroSinPuntos).toLocaleString('es-CL') : '');
+    }
+  };
+
   const calcularCAE = (plazoMeses) => {
     if (!saldoPrecio || parseFloat(saldoPrecio) <= 0) return 0;
     
@@ -203,6 +250,31 @@ export default function CalculadoraCuotas() {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: '0',
       margin: '0'
+    },
+    tabBar: {
+      display: 'flex',
+      gap: '8px',
+      background: 'rgba(255,255,255,0.15)',
+      borderRadius: '16px',
+      padding: '6px',
+      marginBottom: '20px'
+    },
+    tabBtn: {
+      flex: 1,
+      padding: '12px 8px',
+      border: 'none',
+      borderRadius: '12px',
+      fontSize: '13px',
+      fontWeight: '700',
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      background: 'transparent',
+      color: 'rgba(255,255,255,0.8)'
+    },
+    tabBtnActive: {
+      background: 'white',
+      color: '#667eea',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
     },
     wrapper: {
       maxWidth: '480px',
@@ -408,6 +480,23 @@ export default function CalculadoraCuotas() {
           <p style={styles.subtitle}>AutoFácil Chile</p>
         </div>
 
+        <div style={styles.tabBar}>
+          <button
+            style={{ ...styles.tabBtn, ...(tab === 'cuota' ? styles.tabBtnActive : {}) }}
+            onClick={() => setTab('cuota')}
+          >
+            Calcular Cuota
+          </button>
+          <button
+            style={{ ...styles.tabBtn, ...(tab === 'capacidad' ? styles.tabBtnActive : {}) }}
+            onClick={() => setTab('capacidad')}
+          >
+            Capacidad de Crédito
+          </button>
+        </div>
+
+        {tab === 'cuota' && (
+        <>
         <div style={styles.inputCard}>
           <label style={styles.label}>Saldo Precio a Financiar</label>
           <div style={styles.inputWrapper}>
@@ -504,6 +593,107 @@ export default function CalculadoraCuotas() {
               Ingrese el monto a financiar para ver las opciones de cuotas
             </p>
           </div>
+        )}
+        </>
+        )}
+
+        {tab === 'capacidad' && (
+        <>
+        <div style={styles.inputCard}>
+          <label style={styles.label}>Renta Líquida del Cliente</label>
+          <div style={styles.inputWrapper}>
+            <DollarSign style={styles.dollarIcon} />
+            <input
+              type="text"
+              inputMode="numeric"
+              value={rentaInput}
+              onChange={handleRentaChange}
+              placeholder="Ingrese la renta líquida"
+              style={styles.input}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
+            />
+          </div>
+
+          <div style={styles.includeSection}>
+            <div style={styles.includeHeader}>
+              <Shield style={{ width: '16px', height: '16px', color: '#667eea' }} />
+              <span>Parámetros:</span>
+            </div>
+            <div style={styles.includeList}>
+              <div style={styles.includeItem}>✓ Cuota máx: 30% de la renta líquida</div>
+              <div style={styles.includeItem}>✓ Pie: 40% del valor del auto</div>
+              <div style={styles.includeItem}>✓ Incluye todos los seguros y gastos</div>
+              {cuotaMaxima > 0 && (
+                <div style={styles.includeItem}>✓ Cuota máxima: {formatearMonto(cuotaMaxima)}</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {renta && parseFloat(renta) > 0 ? (
+          <>
+            <div style={styles.sectionTitle}>
+              <Calendar style={{ width: '20px', height: '20px' }} />
+              Crédito Líquido Máximo
+            </div>
+
+            <div style={styles.optionsContainer}>
+              {[
+                { months: 12, label: 'Corto Plazo', color: colorSchemes[12] },
+                { months: 24, label: 'Recomendado', color: colorSchemes[24] },
+                { months: 36, label: 'Cuota Baja', color: colorSchemes[36] },
+                { months: 48, label: 'Más Plazo', color: colorSchemes[48] }
+              ].map(({ months, label, color }) => {
+                const cap = calcularCapacidad(months);
+                return (
+                  <div
+                    key={months}
+                    style={{
+                      ...styles.optionCard,
+                      background: `linear-gradient(135deg, ${color.from} 0%, ${color.to} 100%)`
+                    }}
+                  >
+                    <div style={styles.optionHeader}>
+                      <div>
+                        <div style={styles.optionLabel}>{months} Meses</div>
+                        <div style={styles.optionAmount}>
+                          {formatearMonto(cap.credito)}
+                        </div>
+                      </div>
+                      <div style={styles.optionBadge}>{label}</div>
+                    </div>
+                    <div style={styles.optionSubtext}>crédito líquido máximo</div>
+                    <div style={styles.optionTotal}>
+                      Pie estimado: {formatearMonto(cap.pie)} · Auto: {formatearMonto(cap.valorAuto)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={styles.infoCard}>
+              <div style={styles.infoTitle}>Condiciones:</div>
+              <div style={styles.infoItem}>• Cuota máxima: {formatearMonto(cuotaMaxima)} (30% de la renta)</div>
+              <div style={styles.infoItem}>• Pie: 40% del valor del auto</div>
+              <div style={styles.infoItem}>• Valor UF: ${UF.toLocaleString('es-CL')} ({diaActual}/{mesActual + 1}/2026)</div>
+              <div style={styles.infoItem}>• Incluye todos los seguros y gastos operacionales</div>
+              <div style={{ ...styles.infoItem, marginTop: '12px', fontStyle: 'italic', color: '#9CA3AF', fontSize: '11px' }}>
+                Valores referenciales, con primera cuota a 30 días.
+              </div>
+            </div>
+          </>
+        ) : (
+          <div style={styles.emptyState}>
+            <div style={styles.emptyIcon}>
+              <TrendingUp style={{ width: '64px', height: '64px', margin: '0 auto' }} />
+            </div>
+            <p style={styles.emptyText}>
+              Ingrese la renta líquida para ver el crédito máximo
+            </p>
+          </div>
+        )}
+        </>
         )}
       </div>
     </div>
